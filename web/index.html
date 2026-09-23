@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Integrado de Evaluación Eólica - Parque Windpeshi</title>
+  <meta name="description" content="Dashboard de Adquisición e Integración de Datos para el Parque Eólico Windpeshi en La Guajira, Colombia.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ENCABEZADO PRINCIPAL -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon">🌪️</div>
+        <div>
+          <h1 class="brand-title">Parque Eólico Windpeshi</h1>
+          <p class="brand-subtitle">Sistema Integrado de Adquisición y Evaluación Energética (DAQ / ETL)</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-geo">📍 Uribia, La Guajira (UTC-5)</span>
+        <span class="badge badge-live" id="systemStatus">● Sistema en Línea</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+
+    <!-- BARRA DE CONTROL Y SELECCIÓN DE FECHA -->
+    <section class="control-panel">
+      <div class="control-card">
+        <div class="control-info">
+          <label for="datePicker" class="control-label">Selecciona la Fecha a Evaluar:</label>
+          <p class="control-help">El sistema consultará las 4 fuentes en tiempo real, limpiará anomalías del sensor y evaluará la curva de potencia.</p>
+        </div>
+        <div class="control-actions">
+          <input type="date" id="datePicker" class="date-input" required>
+          <button id="btnEvaluate" class="btn-primary">
+            <span class="btn-icon">⚡</span>
+            <span class="btn-text">Evaluar Jornada</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ESTADO DE CARGA -->
+    <div id="loadingOverlay" class="loading-state hidden">
+      <div class="spinner"></div>
+      <p class="loading-text">Ejecutando Pipeline: DAQ ➔ Limpieza QA ➔ Integración ➔ Curva Eólica...</p>
+    </div>
+
+    <!-- SECCIÓN DE RESULTADOS -->
+    <div id="resultsSection" class="results-container">
+
+      <!-- BANNER DE VEREDICTO -->
+      <section id="verdictBanner" class="verdict-banner verdict-favorable">
+        <div class="verdict-content">
+          <div class="verdict-icon" id="verdictIcon">⚡</div>
+          <div>
+            <span class="verdict-tag" id="verdictTag">DIAGNÓSTICO OFICIAL</span>
+            <h2 class="verdict-title" id="verdictTitle">DÍA FAVORABLE</h2>
+            <p class="verdict-subtitle" id="verdictSubtitle">Las condiciones meteorológicas son óptimas para la generación de energía.</p>
+          </div>
+        </div>
+        <div class="verdict-date" id="displayTargetDate">Fecha: 2026-03-24</div>
+      </section>
+
+      <!-- TARJETAS DE MÉTRICAS (KPIS) -->
+      <section class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Velocidad del Viento Media</span>
+            <span class="kpi-icon">💨</span>
+          </div>
+          <div class="kpi-value-container">
+            <span class="kpi-value" id="kpiAvgSpeed">--</span>
+            <span class="kpi-unit">m/s</span>
+          </div>
+          <p class="kpi-comparison" id="kpiHistoricalP50">Mediana Histórica (P50): -- m/s</p>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Disponibilidad Operativa</span>
+            <span class="kpi-icon">⏱️</span>
+          </div>
+          <div class="kpi-value-container">
+            <span class="kpi-value" id="kpiOperatingHours">--</span>
+            <span class="kpi-unit">/ 24 hrs</span>
+          </div>
+          <p class="kpi-comparison" id="kpiSpeedRange">Rango: 3.5 m/s (Cut-in) - 25 m/s</p>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Energía Proyectada (1 Turbina)</span>
+            <span class="kpi-icon">🔋</span>
+          </div>
+          <div class="kpi-value-container">
+            <span class="kpi-value" id="kpiEnergyMwh">--</span>
+            <span class="kpi-unit">MWh</span>
+          </div>
+          <p class="kpi-comparison">Turbina Clase II (3.0 MW nominal)</p>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Calidad de Datos (QA)</span>
+            <span class="kpi-icon">🛡️</span>
+          </div>
+          <div class="kpi-value-container">
+            <span class="kpi-value" id="kpiQualityPct">--</span>
+            <span class="kpi-unit">% válidos</span>
+          </div>
+          <p class="kpi-comparison" id="kpiQualityAnomalies">Anomalías filtradas: --</p>
+        </div>
+      </section>
+
+      <!-- JUSTIFICACIÓN TÉCNICA -->
+      <section class="analysis-section">
+        <div class="panel-card">
+          <h3 class="panel-title">📋 Justificación Técnica del Motor de Decisión</h3>
+          <ul class="reasons-list" id="reasonsList">
+            <li>Cargando justificación...</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- TABLA DETALLADA HORA A HORA -->
+      <section class="table-section">
+        <div class="panel-card">
+          <div class="table-header-flex">
+            <div>
+              <h3 class="panel-title">📊 Desglose de las 24 Horas Integradas</h3>
+              <p class="panel-subtitle">Cruce de telemetría IoT, predicción satelital de la API y referencia histórica P50.</p>
+            <div class="download-actions">
+              <a id="btnDownloadCsv" href="#" class="btn-download btn-csv" download>
+                <span>📄</span> Descargar CSV
+              </a>
+              <a id="btnDownloadExcel" href="#" class="btn-download btn-excel" download>
+                <span>📊</span> Descargar Excel (.xlsx)
+              </a>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="data-table" id="hourlyTable">
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Sensor IoT (Media)</th>
+                  <th>Ráfaga Máx (Sensor)</th>
+                  <th>Pronóstico API</th>
+                  <th>Mediana Hist. (P50)</th>
+                  <th>Temp. (°C)</th>
+                  <th>Estado Operativo</th>
+                </tr>
+              </thead>
+              <tbody id="hourlyTableBody">
+                <!-- Se llena dinámicamente con app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <!-- SECCIÓN DE ANÁLISIS DE RIESGOS Y FALENCIAS OPERATIVAS (FMEA) -->
+      <section class="risk-section">
+        <div class="panel-card">
+          <div class="table-header-flex">
+            <div>
+              <h3 class="panel-title">🛡️ Evaluación de Problemáticas y Plan de Mitigación (FMEA)</h3>
+              <p class="panel-subtitle">Análisis de resiliencia del sistema ante fallas de instrumentación, clima desértico y red eléctrica.</p>
+            </div>
+            <span class="badge badge-live">Consultoría Experta</span>
+          </div>
+
+          <div class="risk-grid">
+            <div class="risk-card">
+              <div class="risk-card-header">
+                <span class="risk-icon">📡</span>
+                <h4>1. Instrumentación y DAQ</h4>
+              </div>
+              <p class="risk-problem"><strong>Problemática:</strong> Pérdida de enlace celular en la Alta Guajira y abrasión de sensores por arena y salitre.</p>
+              <div class="risk-solution">
+                <span class="solution-tag">Solución Técnica:</span>
+                <p>Arquitectura <em>Edge Computing</em> con búfer local (FIFO) para 7 días y reemplazo por anemómetros ultrasónicos sin partes móviles (IP67).</p>
+              </div>
+            </div>
+
+            <div class="risk-card">
+              <div class="risk-card-header">
+                <span class="risk-icon">🌪️</span>
+                <h4>2. Clima y Modelación</h4>
+              </div>
+              <p class="risk-problem"><strong>Problemática:</strong> Discrepancia del satélite frente al microclima duna-mar y cizalladura nocturna (turbulencia).</p>
+              <div class="risk-solution">
+                <span class="solution-tag">Solución Técnica:</span>
+                <p>Calibración con corrección de sesgo local (<em>Bias Correction</em>) y LiDAR eólico para escaneo vertical a 100 m.</p>
+              </div>
+            </div>
+
+            <div class="risk-card">
+              <div class="risk-card-header">
+                <span class="risk-icon">⚡</span>
+                <h4>3. Red y Evacuación</h4>
+              </div>
+              <p class="risk-problem"><strong>Problemática:</strong> Congestión en subestación Colectora 500 kV y vertimiento forzado de energía (<em>Curtailment</em>).</p>
+              <div class="risk-solution">
+                <span class="solution-tag">Solución Técnica:</span>
+                <p>Sistemas BESS (baterías industriales a gran escala) para arbitraje y producción de <strong>Hidrógeno Verde</strong> con energía excedente.</p>
+              </div>
+            </div>
+
+            <div class="risk-card">
+              <div class="risk-card-header">
+                <span class="risk-icon">🤝</span>
+                <h4>4. Social y Territorial</h4>
+              </div>
+              <p class="risk-problem"><strong>Problemática:</strong> Bloqueos viales que impiden el ingreso de cuadrillas de mantenimiento in-situ a reparar fallas.</p>
+              <div class="risk-solution">
+                <span class="solution-tag">Solución Técnica:</span>
+                <p>Mantenimiento predictivo 100% remoto por telemetría + esquemas de valor compartido (desalinización de agua y electrificación para rancherías Wayúu).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <footer class="app-footer">
+    <p>Propuesta de Consultoría: Sistema Integrado de Adquisición e Integración de Datos • Parque Windpeshi</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
